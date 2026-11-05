@@ -213,7 +213,17 @@ details.deleted li span{flex:1}
 .hblocks i:nth-child(4n+1):not(:first-child){margin-left:3px}
 .htotal{flex:none;min-width:48px;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
 .htotal.zero{color:var(--faint);font-weight:500}
+.hphone{flex:none;width:58px;text-align:center}
+.hphone .chip{display:inline-block;width:100%;padding:3px 0;font-size:11px}
 .hrow.sel{background:var(--surface-2)}
+.phone-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pstage{min-height:52px;border-radius:12px;background:var(--surface-2);border:1.5px solid var(--line);font-weight:650;font-size:15px;padding:0 12px;text-align:left;display:flex;align-items:center;gap:10px;transition:background-color .12s,border-color .12s,transform .08s}
+.pstage:active{transform:scale(.97)}
+.pstage:last-child{grid-column:1/-1}
+.pstage .n{width:22px;height:22px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:12px;font-weight:750;background:var(--line);color:var(--muted)}
+.pstage.on{background:var(--cbg);border-color:var(--c)}
+.pstage.on .n{background:var(--c);color:#0d0e10}
+.phone-sum{font-size:13px;color:var(--muted)}
 .hrow.sel .hdate{color:var(--text);font-weight:650}
 
 /* ---------- settings ---------- */
@@ -255,7 +265,7 @@ details.deleted li span{flex:1}
 /* ---------- 1. CONFIG & CONSTANTS ---------- */
 const BLOCK_MINUTES = 60;               // one Hours block. Change to 30 for half-hour blocks (stored history is converted automatically).
 const TIME_ZONE = 'Europe/Brussels';    // day boundaries follow this zone. Set to null to follow the device's zone instead.
-const DATA_VERSION = 1;                 // bump when the stored shape changes, and add a step in migrate()
+const DATA_VERSION = 2;                 // bump when the stored shape changes, and add a step in migrate()
 const STORAGE_KEY = 'daily.data';
 const MAX_BLOCKS = Math.floor((24 * 60) / BLOCK_MINUTES);
 const NEUTRAL = '#a3adbb';
@@ -266,6 +276,17 @@ const SPORTS = [
   { id: 'football', label: 'Football',       color: '#7ee07a' },
   { id: 'run',      label: 'Run',            color: '#f5d442' },
   { id: 'small',    label: 'Small activity', short: 'Small', color: '#c79bff' },
+];
+
+// "Time before phone": when the phone was first picked up that day. Ordered early → late (later is better).
+const PHONE_STAGES = [
+  { id: 'breakfast', label: 'After breakfast', short: 'Brkfst',  color: '#ff7b6b' },
+  { id: 'morning',   label: 'During morning',  short: 'Morning', color: '#ff9b54' },
+  { id: 'lunch',     label: 'Lunch',           short: 'Lunch',   color: '#f5c542' },
+  { id: 'afternoon', label: 'Afternoon',       short: 'Aftn',    color: '#d6dc4a' },
+  { id: 'dinner',    label: 'Dinner',          short: 'Dinner',  color: '#a6db55' },
+  { id: 'evening',   label: 'After dinner',    short: 'Eve',     color: '#79d462' },
+  { id: 'none',      label: 'No phone',        short: 'No ph',    color: '#4fca6e' },
 ];
 
 const svg = (d, sw = 2) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
@@ -359,6 +380,7 @@ function defaultData() {
     todo:   { today: [], tomorrow: [], archive: [], lastRollover: t },
     streak: { wins: {} },                       // wins[date] = true (absent = not a win)
     hours:  { blockMinutes: BLOCK_MINUTES, days: {} }, // days[date] = integer number of blocks
+    phone:  { days: {} },                       // days[date] = PHONE_STAGES id (absent = not logged)
   };
 }
 
@@ -400,7 +422,8 @@ function migrate(d) {
   const v = Number(d.version) || 0;
   if (v > DATA_VERSION) addNotice(`This data comes from a newer app version (v${v}). Unknown fields are kept but ignored.`, 'newer');
   // Future migrations go here, one step at a time, e.g.:
-  // if (v < 2) { d.someNewSlice = {}; }
+  // if (v < 3) { d.someNewSlice = {}; }
+  // v2: added the "phone" slice (time before phone). normalize() creates it when missing.
   return normalize(d);
 }
 
@@ -409,7 +432,7 @@ function normalize(d) {
   const base = defaultData();
   const obj = (v) => (v && typeof v === 'object' && !Array.isArray(v) ? v : {});
   const arr = (v) => (Array.isArray(v) ? v : []);
-  const H = obj(d.habits), S = obj(d.sports), T = obj(d.todo), K = obj(d.streak), R = obj(d.hours);
+  const H = obj(d.habits), S = obj(d.sports), T = obj(d.todo), K = obj(d.streak), R = obj(d.hours), P = obj(d.phone);
 
   const todoItem = (i, withDone) => {
     const o = { id: String(i.id || uid()), text: String(i.text == null ? '' : i.text), added: isValidKey(i.added) ? i.added : null };
@@ -451,6 +474,7 @@ function normalize(d) {
     },
     streak: { ...K, wins: Object.fromEntries(Object.entries(obj(K.wins)).filter(([k, v]) => isValidKey(k) && v)) },
     hours: { ...R, blockMinutes: BLOCK_MINUTES, days },
+    phone: { ...P, days: Object.fromEntries(Object.entries(obj(P.days)).filter(([k, v]) => isValidKey(k) && phoneStage(v))) },
   };
 }
 
@@ -482,6 +506,8 @@ function sportById(id) { return SPORTS.find((s) => s.id === id); }
 function activeHabits() { return state.habits.list.filter((h) => !h.deleted); }
 function findHabit(id) { return state.habits.list.find((h) => h.id === id); }
 function getBlocks(k) { return state.hours.days[k] || 0; }
+function phoneStage(id) { return PHONE_STAGES.find((s) => s.id === id) || null; }
+function phoneIdx(id) { return PHONE_STAGES.findIndex((s) => s.id === id); }
 function sumBlocks(from, to) {
   let s = 0;
   for (const [k, v] of Object.entries(state.hours.days)) if (k >= from && k <= to) s += v;
@@ -935,6 +961,18 @@ function renderHours() {
     </div>
   </section>`;
 
+  // Time before phone (single choice per day; tap the selected stage again to clear it).
+  const ph = state.phone.days[sel];
+  const wkPhone = Object.entries(state.phone.days).filter(([k]) => k >= weekStart(t) && k <= t).map(([, v]) => phoneIdx(v));
+  const wkAvg = wkPhone.length ? PHONE_STAGES[Math.round(wkPhone.reduce((a, b) => a + b, 0) / wkPhone.length)] : null;
+  const phoneCard = `<section class="card">
+    <div class="card-h"><h2>Time before phone</h2><span class="phone-sum">${wkAvg ? `Week avg: ${wkAvg.label}` : ''}</span></div>
+    <div class="phone-grid">${PHONE_STAGES.map((st, i) => `
+      <button class="pstage${ph === st.id ? ' on' : ''}" style="--c:${st.color};--cbg:${hexA(st.color, 0.16)}" data-act="phone-set" data-s="${st.id}" aria-pressed="${ph === st.id}">
+        <span class="n">${i + 1}</span>${st.label}</button>`).join('')}
+    </div>
+  </section>`;
+
   const wkBlocks = sumBlocks(weekStart(t), t);
   const moBlocks = sumBlocks(monthStart(t), t);
   const avg = hoursOf(wkBlocks) / (weekday(t) + 1);   // averaged over Mon..today
@@ -944,7 +982,7 @@ function renderHours() {
     <div class="mini"><div class="v">${Math.round(avg * 10) / 10} h</div><div class="l">Avg / day (wk)</div></div>
   </div>`;
 
-  const logged = Object.keys(state.hours.days).filter((k) => k <= t && state.hours.days[k] > 0).sort();
+  const logged = [...Object.keys(state.hours.days).filter((k) => state.hours.days[k] > 0), ...Object.keys(state.phone.days)].filter((k) => k <= t).sort();
   let history;
   if (!logged.length) {
     history = '<div class="rows"><div class="empty">Nothing logged yet. Tap + to add your first block.</div></div>';
@@ -952,13 +990,15 @@ function renderHours() {
     const rows = [];
     for (let d = t; d >= logged[0]; d = addDays(d, -1)) {
       const v = getBlocks(d);
+      const st = phoneStage(state.phone.days[d]);
+      const chip = st ? `<span class="chip" style="--c:${st.color};--cbg:${hexA(st.color, 0.16)}" title="Phone: ${st.label}">${st.short}</span>` : '';
       rows.push(`<div class="hrow${d === sel ? ' sel' : ''}${weekday(d) === 0 ? ' wk' : ''}" role="button" tabindex="0" data-act="hours-select" data-d="${d}">
-        <span class="hdate">${fmtShort(d)}</span><span class="hblocks">${'<i></i>'.repeat(v)}</span><span class="htotal${v ? '' : ' zero'}">${fmtH(v)}</span></div>`);
+        <span class="hdate">${fmtShort(d)}</span><span class="hblocks">${'<i></i>'.repeat(v)}</span><span class="hphone">${chip}</span><span class="htotal${v ? '' : ' zero'}">${fmtH(v)}</span></div>`);
     }
     history = `<div class="rows">${rows.join('')}</div>`;
   }
 
-  return dateBar('hours', sel) + top + stats + '<div class="sec-title">History</div>' + history;
+  return dateBar('hours', sel) + top + phoneCard + stats + '<div class="sec-title">History</div>' + history;
 }
 
 /* ---------- 7. ACTIONS / EVENT HANDLERS ---------- */
@@ -1169,6 +1209,15 @@ const ACTIONS = {
     if (next === cur) return;
     if (next > 0) state.hours.days[d] = next; else delete state.hours.days[d];
     buzz();
+    save();
+    render();
+  },
+
+  'phone-set'(el) {
+    const d = ui.hoursDate;
+    if (d > todayKey() || !phoneStage(el.dataset.s)) return;
+    if (state.phone.days[d] === el.dataset.s) delete state.phone.days[d];
+    else { state.phone.days[d] = el.dataset.s; buzz(); }
     save();
     render();
   },
