@@ -83,6 +83,7 @@ main{max-width:760px;margin:0 auto;padding:14px 16px calc(var(--safe-b) + 40px)}
 .home-date{margin:2px 2px 16px;color:var(--muted);font-size:15px}
 .tiles{display:grid;gap:12px;grid-template-columns:1fr}
 @media (min-width:640px){.tiles{grid-template-columns:1fr 1fr}}
+@media (min-width:420px){.rows{--bsz:10px}}
 .tile{display:flex;align-items:center;gap:16px;width:100%;min-height:96px;padding:18px 16px 18px 20px;border-radius:18px;background:var(--surface);border:1px solid var(--line);text-align:left;position:relative;overflow:hidden;transition:transform .08s}
 .tile::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:4px;border-radius:0 4px 4px 0;background:var(--acc)}
 .tile:active{transform:scale(.985);background:var(--surface-2)}
@@ -134,7 +135,7 @@ details.deleted li span{flex:1}
 .stable tbody tr:last-child td{border-bottom:0}
 .stable tfoot td{color:var(--muted);border-bottom:0;border-top:1px solid var(--line-2)}
 .dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--c);margin-right:10px;vertical-align:0}
-.rows{border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);overflow:hidden}
+.rows{--bsz:8px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);overflow:hidden}
 .srow{display:flex;align-items:center;gap:10px;min-height:48px;padding:6px 12px;border-bottom:1px solid var(--line);cursor:pointer}
 .srow:last-child{border-bottom:0}
 .srow .d{width:88px;flex:none;font-size:14px;color:var(--muted);white-space:nowrap}
@@ -209,12 +210,12 @@ details.deleted li span{flex:1}
 .hdate{flex:none;width:76px;font-size:14px;color:var(--muted);overflow:hidden}
 .hblocks{flex:1;min-width:0;height:100%;display:flex;align-items:center;gap:2px;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .hblocks::-webkit-scrollbar{display:none}
-.hblocks i{flex:0 1 11px;min-width:7px;aspect-ratio:1;border-radius:2px;background:var(--acc)}
+.hblocks i{flex:none;width:var(--bsz);height:var(--bsz);border-radius:2px;background:var(--acc)}  /* fixed size: long days scroll instead of shrinking */
 .hblocks i:nth-child(4n+1):not(:first-child){margin-left:2px}
 .htotal{flex:none;min-width:40px;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
 .htotal.zero{color:var(--faint);font-weight:500}
 .hphone{flex:none;display:flex;gap:2px;align-items:center;padding-right:8px;margin-right:2px;border-right:1px solid var(--line)}
-.hphone i{width:8px;height:8px;border-radius:2px;box-shadow:inset 0 0 0 1.5px var(--line-2)}
+.hphone i{flex:none;width:var(--bsz);height:var(--bsz);border-radius:2px;box-shadow:inset 0 0 0 1.5px var(--line-2)}
 .hphone i.f{background:var(--pc);box-shadow:none}
 .hrow.sel{background:var(--surface-2)}
 .phone-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -1384,7 +1385,20 @@ window.addEventListener('storage', (e) => {
       .catch(() => {});
   }
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
-    window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+        .then((reg) => reg.update())
+        .catch(() => {});
+    });
+    // When a new version takes over, reload once so it shows immediately.
+    if (navigator.serviceWorker.controller) {
+      let reloaded = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (reloaded) return;
+        reloaded = true;
+        location.reload();
+      });
+    }
   }
 })();
 </script>
