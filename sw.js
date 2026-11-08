@@ -1,6 +1,6 @@
 // sw.js — offline support for Daily.
 // Bump CACHE (e.g. 'daily-v2') whenever you change index.html so phones drop the old copy.
-const CACHE = 'daily-v2';
+const CACHE = 'daily-v3';
 const ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', (event) => {

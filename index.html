@@ -203,27 +203,32 @@ details.deleted li span{flex:1}
 .mini{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:11px 12px;min-width:0}
 .mini .v{font-size:21px;font-weight:750;font-variant-numeric:tabular-nums;white-space:nowrap}
 .mini .l{font-size:12px;color:var(--muted);margin-top:2px}
-.hrow{display:flex;align-items:center;gap:10px;height:44px;padding:0 12px;border-bottom:1px solid var(--line);white-space:nowrap;cursor:pointer}
+.hrow{display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;border-bottom:1px solid var(--line);white-space:nowrap;cursor:pointer}
 .hrow:last-child{border-bottom:0}
 .hrow.wk{border-bottom:2px solid var(--line-2)}
-.hdate{flex:none;width:84px;font-size:14px;color:var(--muted);overflow:hidden}
+.hdate{flex:none;width:76px;font-size:14px;color:var(--muted);overflow:hidden}
 .hblocks{flex:1;min-width:0;height:100%;display:flex;align-items:center;gap:2px;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .hblocks::-webkit-scrollbar{display:none}
-.hblocks i{flex:0 1 12px;min-width:3px;aspect-ratio:1;border-radius:2px;background:var(--acc)}
-.hblocks i:nth-child(4n+1):not(:first-child){margin-left:3px}
-.htotal{flex:none;min-width:48px;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.hblocks i{flex:0 1 11px;min-width:7px;aspect-ratio:1;border-radius:2px;background:var(--acc)}
+.hblocks i:nth-child(4n+1):not(:first-child){margin-left:2px}
+.htotal{flex:none;min-width:40px;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
 .htotal.zero{color:var(--faint);font-weight:500}
-.hphone{flex:none;width:58px;text-align:center}
-.hphone .chip{display:inline-block;width:100%;padding:3px 0;font-size:11px}
+.hphone{flex:none;display:flex;gap:2px;align-items:center;padding-right:8px;margin-right:2px;border-right:1px solid var(--line)}
+.hphone i{width:8px;height:8px;border-radius:2px;box-shadow:inset 0 0 0 1.5px var(--line-2)}
+.hphone i.f{background:var(--pc);box-shadow:none}
 .hrow.sel{background:var(--surface-2)}
 .phone-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .pstage{min-height:52px;border-radius:12px;background:var(--surface-2);border:1.5px solid var(--line);font-weight:650;font-size:15px;padding:0 12px;text-align:left;display:flex;align-items:center;gap:10px;transition:background-color .12s,border-color .12s,transform .08s}
 .pstage:active{transform:scale(.97)}
-.pstage:last-child{grid-column:1/-1}
-.pstage .n{width:22px;height:22px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:12px;font-weight:750;background:var(--line);color:var(--muted)}
+.pstage.all{grid-column:1/-1;justify-content:center;color:var(--muted)}
+.pstage .n{width:24px;height:24px;border-radius:7px;flex:none;display:grid;place-items:center;border:2px solid var(--line-2);color:transparent}
+.pstage .n svg{width:14px;height:14px}
 .pstage.on{background:var(--cbg);border-color:var(--c)}
-.pstage.on .n{background:var(--c);color:#0d0e10}
-.phone-sum{font-size:13px;color:var(--muted)}
+.pstage.on .n{background:var(--c);border-color:var(--c);color:#0d0e10}
+.pstage.all.on{color:var(--text)}
+.phone-sum{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.hlegend{display:flex;gap:14px;font-size:12px;color:var(--muted);margin:-2px 2px 8px}
+.hlegend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:0}
 .hrow.sel .hdate{color:var(--text);font-weight:650}
 
 /* ---------- settings ---------- */
@@ -265,7 +270,7 @@ details.deleted li span{flex:1}
 /* ---------- 1. CONFIG & CONSTANTS ---------- */
 const BLOCK_MINUTES = 60;               // one Hours block. Change to 30 for half-hour blocks (stored history is converted automatically).
 const TIME_ZONE = 'Europe/Brussels';    // day boundaries follow this zone. Set to null to follow the device's zone instead.
-const DATA_VERSION = 2;                 // bump when the stored shape changes, and add a step in migrate()
+const DATA_VERSION = 3;                 // bump when the stored shape changes, and add a step in migrate()
 const STORAGE_KEY = 'daily.data';
 const MAX_BLOCKS = Math.floor((24 * 60) / BLOCK_MINUTES);
 const NEUTRAL = '#a3adbb';
@@ -278,16 +283,17 @@ const SPORTS = [
   { id: 'small',    label: 'Small activity', short: 'Small', color: '#c79bff' },
 ];
 
-// "Time before phone": when the phone was first picked up that day. Ordered early → late (later is better).
-const PHONE_STAGES = [
-  { id: 'breakfast', label: 'After breakfast', short: 'Brkfst',  color: '#ff7b6b' },
-  { id: 'morning',   label: 'During morning',  short: 'Morning', color: '#ff9b54' },
-  { id: 'lunch',     label: 'Lunch',           short: 'Lunch',   color: '#f5c542' },
-  { id: 'afternoon', label: 'Afternoon',       short: 'Aftn',    color: '#d6dc4a' },
-  { id: 'dinner',    label: 'Dinner',          short: 'Dinner',  color: '#a6db55' },
-  { id: 'evening',   label: 'After dinner',    short: 'Eve',     color: '#79d462' },
-  { id: 'none',      label: 'No phone',        short: 'No ph',    color: '#4fca6e' },
+// "Time without phone": the same fixed blocks every day, in order. A block is coloured when the phone wasn't used during it.
+// Edit labels freely; keep ids stable (they're the keys in stored data).
+const PHONE_PERIODS = [
+  { id: 'breakfast', label: 'After breakfast' },
+  { id: 'morning',   label: 'Morning' },
+  { id: 'lunch',     label: 'Lunch' },
+  { id: 'afternoon', label: 'Afternoon' },
+  { id: 'dinner',    label: 'Dinner' },
+  { id: 'evening',   label: 'After dinner' },
 ];
+const PHONE_COLOR = '#4fca6e';
 
 const svg = (d, sw = 2) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 const ICONS = {
@@ -380,7 +386,7 @@ function defaultData() {
     todo:   { today: [], tomorrow: [], archive: [], lastRollover: t },
     streak: { wins: {} },                       // wins[date] = true (absent = not a win)
     hours:  { blockMinutes: BLOCK_MINUTES, days: {} }, // days[date] = integer number of blocks
-    phone:  { days: {} },                       // days[date] = PHONE_STAGES id (absent = not logged)
+    phone:  { free: {} },                       // free[date] = ['morning','lunch'] — PHONE_PERIODS ids that were phone-free
   };
 }
 
@@ -424,6 +430,17 @@ function migrate(d) {
   // Future migrations go here, one step at a time, e.g.:
   // if (v < 3) { d.someNewSlice = {}; }
   // v2: added the "phone" slice (time before phone). normalize() creates it when missing.
+  // v3: "time before phone" (one stage per day) → "time without phone" (set of phone-free periods).
+  //     A day logged as "first picked up at stage X" becomes "every period before X was phone-free".
+  if (v < 3 && d.phone && d.phone.days && typeof d.phone.days === 'object') {
+    const order = ['breakfast', 'morning', 'lunch', 'afternoon', 'dinner', 'evening'];
+    const free = {};
+    for (const [k, stage] of Object.entries(d.phone.days)) {
+      const n = stage === 'none' ? order.length : order.indexOf(stage);
+      if (n > 0) free[k] = order.slice(0, n);
+    }
+    d.phone = { free };
+  }
   return normalize(d);
 }
 
@@ -474,7 +491,9 @@ function normalize(d) {
     },
     streak: { ...K, wins: Object.fromEntries(Object.entries(obj(K.wins)).filter(([k, v]) => isValidKey(k) && v)) },
     hours: { ...R, blockMinutes: BLOCK_MINUTES, days },
-    phone: { ...P, days: Object.fromEntries(Object.entries(obj(P.days)).filter(([k, v]) => isValidKey(k) && phoneStage(v))) },
+    phone: { ...P, free: Object.fromEntries(Object.entries(obj(P.free))
+      .map(([k, v]) => [k, Array.isArray(v) ? PHONE_PERIODS.map((x) => x.id).filter((id) => v.includes(id)) : []])
+      .filter(([k, v]) => isValidKey(k) && v.length)) },
   };
 }
 
@@ -506,8 +525,12 @@ function sportById(id) { return SPORTS.find((s) => s.id === id); }
 function activeHabits() { return state.habits.list.filter((h) => !h.deleted); }
 function findHabit(id) { return state.habits.list.find((h) => h.id === id); }
 function getBlocks(k) { return state.hours.days[k] || 0; }
-function phoneStage(id) { return PHONE_STAGES.find((s) => s.id === id) || null; }
-function phoneIdx(id) { return PHONE_STAGES.findIndex((s) => s.id === id); }
+function phoneFree(k) { return state.phone.free[k] || []; }
+function sumPhoneFree(from, to) {
+  let s = 0;
+  for (const [k, v] of Object.entries(state.phone.free)) if (k >= from && k <= to) s += v.length;
+  return s;
+}
 function sumBlocks(from, to) {
   let s = 0;
   for (const [k, v] of Object.entries(state.hours.days)) if (k >= from && k <= to) s += v;
@@ -961,15 +984,17 @@ function renderHours() {
     </div>
   </section>`;
 
-  // Time before phone (single choice per day; tap the selected stage again to clear it).
-  const ph = state.phone.days[sel];
-  const wkPhone = Object.entries(state.phone.days).filter(([k]) => k >= weekStart(t) && k <= t).map(([, v]) => phoneIdx(v));
-  const wkAvg = wkPhone.length ? PHONE_STAGES[Math.round(wkPhone.reduce((a, b) => a + b, 0) / wkPhone.length)] : null;
+  // Time without phone: multi-select of fixed daily periods.
+  const free = new Set(phoneFree(sel));
+  const allFree = free.size === PHONE_PERIODS.length;
+  const pStyle = `--c:${PHONE_COLOR};--cbg:${hexA(PHONE_COLOR, 0.16)}`;
+  const wkFree = sumPhoneFree(weekStart(t), t);
   const phoneCard = `<section class="card">
-    <div class="card-h"><h2>Time before phone</h2><span class="phone-sum">${wkAvg ? `Week avg: ${wkAvg.label}` : ''}</span></div>
-    <div class="phone-grid">${PHONE_STAGES.map((st, i) => `
-      <button class="pstage${ph === st.id ? ' on' : ''}" style="--c:${st.color};--cbg:${hexA(st.color, 0.16)}" data-act="phone-set" data-s="${st.id}" aria-pressed="${ph === st.id}">
-        <span class="n">${i + 1}</span>${st.label}</button>`).join('')}
+    <div class="card-h"><h2>Time without phone</h2><span class="phone-sum">${free.size}/${PHONE_PERIODS.length} · week ${wkFree}/${PHONE_PERIODS.length * (weekday(t) + 1)}</span></div>
+    <div class="phone-grid">${PHONE_PERIODS.map((pp) => `
+      <button class="pstage${free.has(pp.id) ? ' on' : ''}" style="${pStyle}" data-act="phone-toggle" data-s="${pp.id}" aria-pressed="${free.has(pp.id)}">
+        <span class="n">${ICONS.check}</span>${pp.label}</button>`).join('')}
+      <button class="pstage all${allFree ? ' on' : ''}" style="${pStyle}" data-act="phone-all" aria-pressed="${allFree}">${allFree ? 'Whole day phone-free ✓' : 'Whole day phone-free'}</button>
     </div>
   </section>`;
 
@@ -982,7 +1007,7 @@ function renderHours() {
     <div class="mini"><div class="v">${Math.round(avg * 10) / 10} h</div><div class="l">Avg / day (wk)</div></div>
   </div>`;
 
-  const logged = [...Object.keys(state.hours.days).filter((k) => state.hours.days[k] > 0), ...Object.keys(state.phone.days)].filter((k) => k <= t).sort();
+  const logged = [...Object.keys(state.hours.days).filter((k) => state.hours.days[k] > 0), ...Object.keys(state.phone.free)].filter((k) => k <= t).sort();
   let history;
   if (!logged.length) {
     history = '<div class="rows"><div class="empty">Nothing logged yet. Tap + to add your first block.</div></div>';
@@ -990,12 +1015,12 @@ function renderHours() {
     const rows = [];
     for (let d = t; d >= logged[0]; d = addDays(d, -1)) {
       const v = getBlocks(d);
-      const st = phoneStage(state.phone.days[d]);
-      const chip = st ? `<span class="chip" style="--c:${st.color};--cbg:${hexA(st.color, 0.16)}" title="Phone: ${st.label}">${st.short}</span>` : '';
+      const pf = phoneFree(d);
+      const strip = PHONE_PERIODS.map((pp) => `<i${pf.includes(pp.id) ? ' class="f"' : ''}></i>`).join('');
       rows.push(`<div class="hrow${d === sel ? ' sel' : ''}${weekday(d) === 0 ? ' wk' : ''}" role="button" tabindex="0" data-act="hours-select" data-d="${d}">
-        <span class="hdate">${fmtShort(d)}</span><span class="hblocks">${'<i></i>'.repeat(v)}</span><span class="hphone">${chip}</span><span class="htotal${v ? '' : ' zero'}">${fmtH(v)}</span></div>`);
+        <span class="hdate">${fmtShort(d)}</span><span class="hphone" style="--pc:${PHONE_COLOR}" title="${pf.length}/${PHONE_PERIODS.length} phone-free">${strip}</span><span class="hblocks">${'<i></i>'.repeat(v)}</span><span class="htotal${v ? '' : ' zero'}">${fmtH(v)}</span></div>`);
     }
-    history = `<div class="rows">${rows.join('')}</div>`;
+    history = `<div class="hlegend"><span><i style="background:${PHONE_COLOR}"></i>Phone-free</span><span><i style="background:var(--acc)"></i>Work (${BLOCK_MINUTES} min)</span></div><div class="rows">${rows.join('')}</div>`;
   }
 
   return dateBar('hours', sel) + top + phoneCard + stats + '<div class="sec-title">History</div>' + history;
@@ -1213,11 +1238,21 @@ const ACTIONS = {
     render();
   },
 
-  'phone-set'(el) {
+  'phone-toggle'(el) {
+    const d = ui.hoursDate, id = el.dataset.s;
+    if (d > todayKey() || !PHONE_PERIODS.some((p) => p.id === id)) return;
+    const set = new Set(phoneFree(d));
+    if (set.has(id)) set.delete(id); else { set.add(id); buzz(); }
+    const arr = PHONE_PERIODS.map((p) => p.id).filter((x) => set.has(x));
+    if (arr.length) state.phone.free[d] = arr; else delete state.phone.free[d];
+    save();
+    render();
+  },
+  'phone-all'() {
     const d = ui.hoursDate;
-    if (d > todayKey() || !phoneStage(el.dataset.s)) return;
-    if (state.phone.days[d] === el.dataset.s) delete state.phone.days[d];
-    else { state.phone.days[d] = el.dataset.s; buzz(); }
+    if (d > todayKey()) return;
+    if (phoneFree(d).length === PHONE_PERIODS.length) delete state.phone.free[d];
+    else { state.phone.free[d] = PHONE_PERIODS.map((p) => p.id); buzz(); }
     save();
     render();
   },
