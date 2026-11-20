@@ -724,6 +724,11 @@ function renderSettings() {
     </div>
   </section>
   <section class="card">
+    <div class="card-h"><h2>Start fresh</h2></div>
+    <p>Deletes everything logged before today in every tab. Today's entries, your habit columns and your to-do lists stay.</p>
+    <button class="btn wide danger" data-act="reset-history">Start fresh from today</button>
+  </section>
+  <section class="card">
     <div class="card-h"><h2>About</h2></div>
     <dl class="kv">
       <dt>Storage</dt><dd>${storageOK ? 'OK' : 'Unavailable — not saving'}</dd>
@@ -1272,6 +1277,24 @@ const ACTIONS = {
     const f = el.files && el.files[0];
     el.value = '';
     if (f) importFile(f);
+  },
+  'reset-history'() {
+    const t = todayKey();
+    if (!confirm(`Delete ALL history before ${fmtShort(t)}?\n\nHabits, sports, streak, hours and phone data from earlier days are removed. Today, your habit list and your to-do lists are kept.\n\nThis cannot be undone. Tap Cancel and use Export first if you want a backup.`)) return;
+    const keepFrom = (o) => Object.fromEntries(Object.entries(o).filter(([k]) => k >= t));
+    state.habits.checks = keepFrom(state.habits.checks);
+    state.habits.list = state.habits.list.filter((h) => !h.deleted);
+    state.sports.days = keepFrom(state.sports.days);
+    state.streak.wins = keepFrom(state.streak.wins);
+    state.hours.days = keepFrom(state.hours.days);
+    state.phone.free = keepFrom(state.phone.free);
+    state.todo.archive = [];
+    for (const i of state.todo.today) i.carried = false;
+    state.createdAt = t;
+    save();
+    resetSelections();
+    render();
+    toast('History cleared — fresh start');
   },
   'test-reset'() {
     if (!TEST_DATE || !confirm('Erase all TEST data? Real data is not affected.')) return;
